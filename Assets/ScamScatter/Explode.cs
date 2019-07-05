@@ -4,6 +4,14 @@ namespace ScamScatter
 {
     public static class Explode
     {
+        /// <summary>
+        /// Attach ridig bodies to scattered objects so that they will be thrown around by the
+        /// physics system. The "explosion" happens because they most likely overlaps with each other.
+        /// </summary>
+        /// <param name="hitPoint">Explosion from this point in space.</param>
+        /// <param name="radius">Affect scattered fragments within this radius.</param>
+        /// <param name="height">Affect scattered fragments within this height.</param>
+        /// <returns></returns>
         public static int Run(
             Vector3 hitPoint, 
             float radius,

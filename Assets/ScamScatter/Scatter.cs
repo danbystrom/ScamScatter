@@ -29,6 +29,18 @@ namespace ScamScatter
         public const string FragmentNamePrefix = "Scam_";
         public const string DebrisNamePrefix = "ScamDebris_";
 
+        /// <summary>
+        /// Creates a number of new game objects with meshes that will resemble the original mesh.
+        /// The new parts may then be moved around separately.
+        /// </summary>
+        /// <param name="gameObject">The game object to scatter. Must have a read/write enabled mesh and must not be marked as static.</param>
+        /// <param name="parts">Aim at creating this number of new parts. Depending on maxArea, the result may be much larger.</param>
+        /// <param name="maxArea">The approx area of the new parts. This is the area of the front side.</param>
+        /// <param name="thicknessMin">Min thickness of the newmeshes (random range)</param>
+        /// <param name="thicknessMax">Max thickness of the new meshes(random range)</param>
+        /// <param name="parentTransform">Attach the new objects to this transform.</param>
+        /// <param name="destroyOriginal">If the original object shall be destroyed automatically</param>
+        /// <returns></returns>
         public static int Run(
             GameObject gameObject,
             int parts = 50,
