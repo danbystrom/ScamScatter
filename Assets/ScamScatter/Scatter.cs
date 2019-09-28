@@ -16,18 +16,40 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace ScamScatter
 {
-    public static class Scatter
+    public class Scatter
     {
+        public class Stats
+        {
+            public int SourceTriangles;
+            public int NewGameObjects;
+            public int NewTriangles;
+        }
+
         public const string FragmentNamePrefix = "Scam_";
         public const string DebrisNamePrefix = "ScamDebris_";
+
+        public int TargetPartCount = 50;
+        public float TargetArea = 0.4f;
+        public float NewThicknessMin = 0.3f;
+        public float NewThicknessMax = 0.35f;
+        public int MaxTimeMs = 0;
+
+        public Scatter(int maxTimeMs = 0)
+        {
+            MaxTimeMs = maxTimeMs;
+        }
 
         /// <summary>
         /// Creates a number of new game objects with meshes that will resemble the original mesh.
@@ -41,110 +63,150 @@ namespace ScamScatter
         /// <param name="parentTransform">Attach the new objects to this transform.</param>
         /// <param name="destroyOriginal">If the original object shall be destroyed automatically</param>
         /// <returns></returns>
-        public static int Run(
+        public void Run(
+            MonoBehaviour mb,
+            Action<Stats> whenDone,
+            ScatterCommands commands)
+        {
+            mb.StartCoroutine(run(commands, whenDone));
+        }
+
+        public static void Run(
             GameObject gameObject,
             int parts = 50,
             float maxArea = 0.4f,
             float thicknessMin = 0.3f,
-            float thicknessMax = 0.35f,
-            Transform parentTransform = null,
-            bool destroyOriginal = true)
+            float thicknessMax = 0.35f)
         {
-            // already scatterd?
-            if (gameObject.name.StartsWith(FragmentNamePrefix) || gameObject.name.StartsWith(DebrisNamePrefix))
-                return 0;
-
-            var meshFilter = gameObject.GetComponentInChildren<MeshFilter>();
-            var meshRenderer = gameObject.GetComponentInChildren<MeshRenderer>();
-            var mesh = meshFilter.mesh;
-            var meshData = new meshData(mesh, gameObject.transform.lossyScale);
-            var objectCount = 0;
-            for (var submeshIndex = 0; submeshIndex < mesh.subMeshCount; submeshIndex++)
+            new Scatter
             {
-                meshData.SelectSubmesh(submeshIndex);
-                var maxTris = Mathf.Max(2, meshData.TotalTriangleCount / parts);
-                while (meshData.Triangles.Any())
+                TargetPartCount = parts,
+                TargetArea = maxArea,
+                NewThicknessMin = thicknessMin,
+                NewThicknessMax = thicknessMax
+            }.run(gameObject, null).MoveNext();
+        }
+
+        private IEnumerator run(
+            ScatterCommands commands,
+            Action<Stats> whenDone)
+        {
+            var sw = Stopwatch.StartNew();
+            var stats = new Stats();
+            var objectCount = 0;
+
+            foreach (var cmd in commands)
+            {
+                var gameObject = cmd.GameObject;
+                // already scattered?
+                if (gameObject == null
+                    || gameObject.name.StartsWith(FragmentNamePrefix)
+                    || gameObject.name.StartsWith(DebrisNamePrefix))
+                    continue;
+
+                var targetPartCount = cmd.TargetPartCount.GetValueOrDefault(TargetPartCount);
+                var targetArea = cmd.TargetArea.GetValueOrDefault(TargetArea);
+                var newThicknessMin = cmd.NewThicknessMin.GetValueOrDefault(NewThicknessMin);
+                var newThicknessMax = cmd.NewThicknessMax.GetValueOrDefault(NewThicknessMax);
+
+                var meshData = new meshData(cmd.Mesh, gameObject.transform.lossyScale);
+                stats.SourceTriangles += meshData.TotalTriangleCount;
+                for (var submeshIndex = 0; submeshIndex < cmd.Mesh.subMeshCount; submeshIndex++)
                 {
-                    var newTriangles = new List<triangle>();
-                    var newVerticies = new List<vertex>();
-
-                    var quota = Mathf.Min(meshData.Triangles.Count, Random.Range(maxTris - 1, maxTris + 2));
-                    extractTrianglesAndVerticies(newVerticies, newTriangles, quota, meshData, maxArea);
-
-                    // at this point, we have a continous surface in newTriangles+newVerticies which
-                    // are a subset of the whole mesh
-                    // now let's create some SCAM!
-
-                    // first, calculate the average normal of the surface and the midpoint
-                    var frontNormal = Vector3.zero;
-                    var frontMidpoint = Vector3.zero;
-                    foreach (var t in newTriangles)
+                    meshData.SelectSubmesh(submeshIndex);
+                    var maxTris = Mathf.Max(2, meshData.TotalTriangleCount / targetPartCount);
+                    while (meshData.Triangles.Any())
                     {
-                        var p1 = newVerticies[t.I0].Pos;
-                        var p2 = newVerticies[t.I1].Pos;
-                        var p3 = newVerticies[t.I2].Pos;
+                        var newTriangles = new List<triangle>();
+                        var newVerticies = new List<vertex>();
 
-                        frontMidpoint += p1 + p2 + p3;
-                        frontNormal += Vector3.Cross(p2 - p1, p3 - p1);
-                    }
-                    var backVector = -frontNormal.normalized * Random.Range(thicknessMin, thicknessMax);
-                    var backMidpoint = frontMidpoint / (newTriangles.Count * 3) + backVector;
+                        var quota = Mathf.Min(meshData.Triangles.Count, Random.Range(maxTris - 1, maxTris + 2));
+                        extractTrianglesAndVerticies(newVerticies, newTriangles, quota, meshData, targetArea);
 
-                    // now we create a backside by creating a flipped backside, pushed backward by
-                    // the user's specified thickness. we also contract it somewhat, to avoid z-fighting
-                    // with ortogonal surfaces
-                    var vertLength = newVerticies.Count;
-                    for (var k = 0; k < vertLength; k++)
-                        newVerticies.Add(new vertex
+                        // at this point, we have a continous surface in newTriangles+newVerticies which
+                        // are a subset of the whole mesh
+                        // now let's create some SCAM!
+
+                        // first, calculate the average normal of the surface and the midpoint
+                        var frontNormal = Vector3.zero;
+                        var frontMidpoint = Vector3.zero;
+                        foreach (var t in newTriangles)
                         {
-                            Pos = Vector3.Lerp(newVerticies[k].Pos + backVector, backMidpoint, 0.2f),
-                            Uv = Vector2.one - newVerticies[k].Uv,
-                            Normal = -newVerticies[k].Normal,
-                            Tangent = newVerticies[k].Tangent
-                        });
+                            var p1 = newVerticies[t.I0].Pos;
+                            var p2 = newVerticies[t.I1].Pos;
+                            var p3 = newVerticies[t.I2].Pos;
 
-                    // create all the new scam triangles
-                    var tlen = newTriangles.Count;
-                    for (var ti = 0; ti < tlen; ti++)
-                    {
-                        var t = newTriangles[ti];
-                        // this is triangle for the backside (only verticies has been created this far)
-                        newTriangles.Add(new triangle(t.I0 + vertLength, t.I2 + vertLength, t.I1 + vertLength));
+                            frontMidpoint += p1 + p2 + p3;
+                            frontNormal += Vector3.Cross(p2 - p1, p3 - p1);
+                        }
+                        var backVector = -frontNormal.normalized * Random.Range(newThicknessMin, newThicknessMax);
+                        var backMidpoint = frontMidpoint / (newTriangles.Count * 3) + backVector;
 
-                        // for each side of the front triangle, investigate if it is an outer
-                        // side, and if so, create two triangles connecting the front with the back
-                        buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I0, t.I1);
-                        buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I1, t.I2);
-                        buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I2, t.I0);
-                        // the new triangles created have completely wrong normals. fixing that would
-                        // slow things down. just sayin'
+                        // now we create a backside by creating a flipped backside, pushed backward by
+                        // the user's specified thickness. we also contract it somewhat, to avoid z-fighting
+                        // with orthogonal surfaces
+                        var vertLength = newVerticies.Count;
+                        for (var k = 0; k < vertLength; k++)
+                            newVerticies.Add(new vertex
+                            {
+                                Pos = Vector3.Lerp(newVerticies[k].Pos + backVector, backMidpoint, 0.2f),
+                                Uv = Vector2.one - newVerticies[k].Uv,
+                                Normal = -newVerticies[k].Normal,
+                                Tangent = newVerticies[k].Tangent
+                            });
+
+                        // create all the new scam triangles
+                        var tlen = newTriangles.Count;
+                        for (var ti = 0; ti < tlen; ti++)
+                        {
+                            var t = newTriangles[ti];
+                            // this is triangle for the backside (only verticies has been created this far)
+                            newTriangles.Add(new triangle(t.I0 + vertLength, t.I2 + vertLength, t.I1 + vertLength));
+
+                            // for each side of the front triangle, investigate if it is an outer
+                            // side, and if so, create two triangles connecting the front with the back
+                            buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I0, t.I1);
+                            buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I1, t.I2);
+                            buildSideRect(newVerticies, vertLength, newTriangles, ti, t.I2, t.I0);
+                            // the new triangles created have completely wrong normals. fixing that would
+                            // slow things down. just sayin'
+                        }
+
+                        // a micro optimizition here would be to stop using LINQ
+                        var theNewMesh = new Mesh
+                        {
+                            vertices = newVerticies.Select(_ => _.Pos).ToArray(),
+                            normals = newVerticies.Select(_ => _.Normal).ToArray(),
+                            uv = newVerticies.Select(_ => _.Uv).ToArray(),
+                            tangents = newVerticies.Select(_ => _.Tangent).ToArray(),
+                            triangles = newTriangles.SelectMany(_ => new[] {_.I0, _.I1, _.I2}).ToArray()
+                        };
+
+                        var newFragment = new GameObject($"{FragmentNamePrefix}{++objectCount}");
+                        newFragment.transform.parent = cmd.NewTransformParent;
+                        newFragment.transform.position = cmd.Renderer.transform.position;
+                        newFragment.transform.rotation = cmd.Renderer.transform.rotation * cmd.RotationFix;
+                        newFragment.AddComponent<MeshRenderer>().material =
+                            cmd.Renderer.materials[submeshIndex % cmd.Renderer.materials.Length];
+                        newFragment.AddComponent<MeshFilter>().mesh = theNewMesh;
+                        newFragment.AddComponent<BoxCollider>();
+
+                        stats.NewGameObjects++;
+                        stats.NewTriangles += newTriangles.Count;
+
+                        if (MaxTimeMs > 0 && sw.ElapsedMilliseconds > MaxTimeMs)
+                        {
+                            Debug.Log("Yield");
+                            yield return null;
+                            sw.Restart();
+                        }
                     }
-
-                    // a micro optimizition here would be to stop using LINQ
-                    var theNewMesh = new Mesh
-                    {
-                        vertices = newVerticies.Select(_ => _.Pos).ToArray(),
-                        normals = newVerticies.Select(_ => _.Normal).ToArray(),
-                        uv = newVerticies.Select(_ => _.Uv).ToArray(),
-                        tangents = newVerticies.Select(_ => _.Tangent).ToArray(),
-                        triangles = newTriangles.SelectMany(_ => new[] {_.I0, _.I1, _.I2}).ToArray()
-                    };
-
-                    var newFragment = new GameObject($"{FragmentNamePrefix}{++objectCount}");
-                    newFragment.transform.parent = parentTransform;
-                    newFragment.transform.position = meshRenderer.transform.position;
-                    newFragment.transform.rotation = meshRenderer.transform.rotation;
-                    newFragment.AddComponent<MeshRenderer>().material =
-                        meshRenderer.materials[submeshIndex % meshRenderer.materials.Length];
-                    newFragment.AddComponent<MeshFilter>().mesh = theNewMesh;
-                    newFragment.AddComponent<BoxCollider>();
                 }
+
+                if (cmd.Destroy)
+                    Object.Destroy(gameObject);
             }
-
-            if (destroyOriginal)
-                Object.Destroy(gameObject);
-
-            return objectCount;
+            whenDone?.Invoke(stats);
         }
 
         private static void extractTrianglesAndVerticies(
@@ -293,8 +355,16 @@ namespace ScamScatter
                 _normals = mesh.normals.ToList();
                 _tangents = mesh.tangents.ToList();
                 _uvs = mesh.uv.ToList();
+                fillOut(_normals);
+                fillOut(_tangents);
+                fillOut(_uvs);
                 _allTriangles = Enumerable.Range(0, mesh.subMeshCount).Select(_ => new triangles(mesh.GetTriangles(_))).ToArray();
                 TotalTriangleCount = _allTriangles.Sum(_ => _.Count);
+            }
+
+            private void fillOut<T>(List<T> list)
+            {
+                list.AddRange(Enumerable.Repeat(default(T), _positions.Count - list.Count));
             }
 
             public Vector3 GetPosition(int i)
@@ -343,10 +413,10 @@ namespace ScamScatter
                 var l1 = (p1 - p2).sqrMagnitude;
                 var l2 = (p2 - p0).sqrMagnitude;
                 var arr = l0 > l1 && l0 > l2
-                    ? new[] {t.I0, t.I1, t.I2}
+                    ? new[] { t.I0, t.I1, t.I2 }
                     : l1 > l0 && l1 > l2
-                        ? new[] {t.I1, t.I2, t.I0}
-                        : new[] {t.I2, t.I0, t.I1};
+                        ? new[] { t.I1, t.I2, t.I0 }
+                        : new[] { t.I2, t.I0, t.I1 };
                 var n0 = fabricateVertex(arr[0], arr[1]);
                 var n1 = fabricateVertex(arr[1], arr[2]);
                 var n2 = fabricateVertex(arr[2], arr[0]);

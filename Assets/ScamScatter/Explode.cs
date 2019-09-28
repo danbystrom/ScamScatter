@@ -5,7 +5,7 @@ namespace ScamScatter
     public static class Explode
     {
         /// <summary>
-        /// Attach ridig bodies to scattered objects so that they will be thrown around by the
+        /// Attach rigid bodies to scattered objects so that they will be thrown around by the
         /// physics system. The "explosion" happens because they most likely overlaps with each other.
         /// </summary>
         /// <param name="hitPoint">Explosion from this point in space.</param>
@@ -13,7 +13,7 @@ namespace ScamScatter
         /// <param name="height">Affect scattered fragments within this height.</param>
         /// <returns></returns>
         public static int Run(
-            Vector3 hitPoint, 
+            Vector3 hitPoint,
             float radius,
             float height)
         {
@@ -23,8 +23,9 @@ namespace ScamScatter
                 if (col.name.StartsWith(Scatter.FragmentNamePrefix))
                 {
                     col.name = Scatter.DebrisNamePrefix + col.name.Substring(Scatter.FragmentNamePrefix.Length);
-                    ((BoxCollider) col).size *= 0.5f;  // half the size to allow debris to shrink partly into ground
-                    col.transform.gameObject.AddComponent<Rigidbody>();
+                    ((BoxCollider)col).size *= 0.4f;  // half the size to allow debris to shrink partly into ground
+                    var rb = col.transform.gameObject.AddComponent<Rigidbody>();
+                    rb.AddExplosionForce(100, hitPoint, radius);  // configuarble...?
                     count++;
                 }
                 else if (col.name.StartsWith(Scatter.DebrisNamePrefix))
@@ -34,5 +35,5 @@ namespace ScamScatter
         }
 
     }
-    
+
 }

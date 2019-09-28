@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 public class Demo : MonoBehaviour
 {
-    private string _info = "http://www.github.com/scamscatter";
+    private string _info = "http://www.github.com/danbystrom/scamscatter";
 
     private void Update()
     {
@@ -13,12 +13,24 @@ public class Demo : MonoBehaviour
         RaycastHit hit;
         if (!Input.GetMouseButtonDown(0) || !Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit))
             return;
+        var building = hit.transform.name == "Cottage"
+            || hit.transform.name == "house1"
+            || hit.transform.name == "house2";
+        var area = building ? 1.5f : 0.7f;
+        var explosionRange = building ? 2 : 0.5f;
         var sw = Stopwatch.StartNew();
-        var objCount = ScamScatter.Scatter.Run(hit.transform.gameObject, 50, 1.5f);
-        ScamScatter.Explode.Run(hit.point, 1, 2);
-        _info = objCount > 0
-            ? $"Scattered {hit.transform.name} into {objCount} new game objects in {sw.ElapsedMilliseconds} ms."
-            : "Hit already scattered object.";
+
+        var commands = new ScamScatter.ScatterCommands();
+        commands.Add(hit.transform.gameObject);
+        new ScamScatter.Scatter { TargetArea = 0.8f, MaxTimeMs = 40 }
+        .Run(this, _ =>
+        {
+            _info = _.NewGameObjects > 0
+                ? $"Scattered {hit.transform.name} ({_.SourceTriangles} triangles) into {_.NewGameObjects} new game objects in {sw.ElapsedMilliseconds} ms."
+                : "Hit already scattered object.";
+            ScamScatter.Explode.Run(hit.point, 1.5f, 2);
+        },
+        commands);
     }
 
     private void OnGUI()
