@@ -70,6 +70,7 @@
     <Compile Include="Assets\ScamScatter\Scatter.cs" />
     <Compile Include="Assets\ScamScatter\ScatterCommand.cs" />
     <Compile Include="Assets\ScamScatter\ScatterCommands.cs" />
+    <Compile Include="Assets\ScatterOverrideExample.cs" />
     <None Include="Assets\www.free3d.com\medieval house\readme.txt" />
     <None Include="Assets\www.free3d.com\cottage\cottage_description.txt" />
     <Reference Include="Unity.Timeline.Editor">

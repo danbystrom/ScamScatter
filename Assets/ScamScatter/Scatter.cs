@@ -73,7 +73,7 @@ namespace ScamScatter
 
         public static void Run(
             GameObject gameObject,
-            int parts = 50,
+            int parts = 1,
             float maxArea = 0.4f,
             float thicknessMin = 0.3f,
             float thicknessMax = 0.35f)
@@ -108,6 +108,7 @@ namespace ScamScatter
                 var targetArea = cmd.TargetArea.GetValueOrDefault(TargetArea);
                 var newThicknessMin = cmd.NewThicknessMin.GetValueOrDefault(NewThicknessMin);
                 var newThicknessMax = cmd.NewThicknessMax.GetValueOrDefault(NewThicknessMax);
+                Debug.Log(targetArea);
 
                 var meshData = new meshData(cmd.Mesh, gameObject.transform.lossyScale);
                 stats.SourceTriangles += meshData.TotalTriangleCount;
@@ -219,7 +220,7 @@ namespace ScamScatter
             quota = Mathf.Min(quota, meshData.Triangles.Count);
             var usedPositions = new HashSet<Vector3>();
             var totalArea = 0f;
-            var retries = triangles.Count;
+            var retries = quota / 2;
             var vd = new Dictionary<int, int>();
             while (triangles.Count < quota && retries >= 0)
             {

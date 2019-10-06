@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace ScamScatter
 {
@@ -20,7 +18,7 @@ namespace ScamScatter
 
         public ScatterCommand(
             GameObject gameObject,
-            Transform newTransformParent,
+            Transform newTransformParent = null,
             Mesh mesh = null,
             Renderer renderer = null,
             bool destroy = true,

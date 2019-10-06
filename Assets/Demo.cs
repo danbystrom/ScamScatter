@@ -16,7 +16,6 @@ public class Demo : MonoBehaviour
         var building = hit.transform.name == "Cottage"
             || hit.transform.name == "house1"
             || hit.transform.name == "house2";
-        var area = building ? 1.5f : 0.7f;
         var explosionRange = building ? 2 : 0.5f;
         var sw = Stopwatch.StartNew();
 
@@ -27,7 +26,7 @@ public class Demo : MonoBehaviour
         {
             _info = _.NewGameObjects > 0
                 ? $"Scattered {hit.transform.name} ({_.SourceTriangles} triangles) into {_.NewGameObjects} new game objects in {sw.ElapsedMilliseconds} ms."
-                : "Hit already scattered object.";
+                : "Nothing to scatter.";
             ScamScatter.Explode.Run(hit.point, 1.5f, 2);
         },
         commands);
