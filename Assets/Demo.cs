@@ -74,8 +74,8 @@ public class Demo : MonoBehaviour
 
     private IEnumerator delayedExplosion(Vector3 position)
     {
-        ScamScatter.Explode.Run(position, 1.5f, 2);
         yield return null;
+        ScamScatter.Explode.Run(position, 1.5f, 2);
     }
 
     private void OnGUI()
