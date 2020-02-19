@@ -52,16 +52,11 @@ public class Demo : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Z))
             SceneManager.LoadScene(0);
-        RaycastHit hit;
-        if (!Input.GetMouseButtonDown(0) || !Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit))
+        if (!Input.GetMouseButtonDown(0) || !Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out var hit))
             return;
-        var building = hit.transform.name == "Cottage"
-            || hit.transform.name == "house1"
-            || hit.transform.name == "house2";
-        var explosionRange = building ? 2 : 0.5f;
         var sw = Stopwatch.StartNew();
 
-        new ScamScatter.Scatter { TargetArea = 0.8f, MaxTimeMs = 30 }
+        new ScamScatter.Scatter { TargetArea = 0.8f, MaxTimeMs = 20 }
         .Run(this, _ =>
         {
             _info = _.NewGameObjects > 0

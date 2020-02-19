@@ -65,6 +65,7 @@
   <ItemGroup>
     <Compile Include="Assets\Demo.cs" />
     <Compile Include="Assets\ExplodeOnImpactScript.cs" />
+    <Compile Include="Assets\ScamScatter\BakeScatterObject.cs" />
     <Compile Include="Assets\ScamScatter\Explode.cs" />
     <Compile Include="Assets\ScamScatter\Extensions.cs" />
     <Compile Include="Assets\ScamScatter\IScatterInstruction.cs" />

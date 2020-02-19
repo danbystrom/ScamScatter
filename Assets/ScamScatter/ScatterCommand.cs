@@ -26,7 +26,11 @@ namespace ScamScatter
         {
             GameObject = gameObject;
             NewTransformParent = newTransformParent;
+#if UNITY_EDITOR
+            Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?.sharedMesh;
+#else
             Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?.mesh;
+#endif
             if (Mesh == null)
             {
                 var skinnedMeshRenderer = GameObject.GetComponentInChildrenPure<SkinnedMeshRenderer>();

@@ -87,6 +87,12 @@ namespace ScamScatter
             }.run(gameObject, null).MoveNext();
         }
 
+        public static void Run(
+            ScatterCommands commands)
+        {
+            new Scatter().run(commands, null).MoveNext();
+        }
+
         private IEnumerator run(
             ScatterCommands commands,
             Action<Stats> whenDone)
@@ -187,8 +193,11 @@ namespace ScamScatter
                         newFragment.transform.parent = cmd.NewTransformParent;
                         newFragment.transform.position = cmd.Renderer.transform.position;
                         newFragment.transform.rotation = cmd.Renderer.transform.rotation * cmd.RotationFix;
-                        newFragment.AddComponent<MeshRenderer>().material =
-                            cmd.Renderer.materials[submeshIndex % cmd.Renderer.materials.Length];
+#if UNITY_EDITOR
+                        newFragment.AddComponent<MeshRenderer>().sharedMaterial = cmd.Renderer.sharedMaterials[submeshIndex % cmd.Renderer.sharedMaterials.Length];
+#else
+                        newFragment.AddComponent<MeshRenderer>().material = cmd.Renderer.materials[submeshIndex % cmd.Renderer.materials.Length];
+#endif
                         newFragment.AddComponent<MeshFilter>().mesh = theNewMesh;
                         newFragment.AddComponent<BoxCollider>();
 
