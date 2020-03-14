@@ -9,38 +9,41 @@ namespace ScamScatter
         public Renderer Renderer;
         public Transform NewTransformParent;
         public bool Destroy;
-        public Quaternion RotationFix;
+        public Vector3 MeshScale;
 
         public int? TargetPartCount;
         public float? TargetArea;
         public float? NewThicknessMin;
         public float? NewThicknessMax;
 
+        public bool DestroyMesh = false;
+
         public ScatterCommand(
             GameObject gameObject,
             Transform newTransformParent = null,
             Mesh mesh = null,
             Renderer renderer = null,
-            bool destroy = true,
-            Quaternion? rotationFix = null)
+            bool destroy = true)
         {
             GameObject = gameObject;
             NewTransformParent = newTransformParent;
-#if UNITY_EDITOR
-            Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?.sharedMesh;
-#else
             Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?.mesh;
-#endif
             if (Mesh == null)
             {
                 var skinnedMeshRenderer = GameObject.GetComponentInChildrenPure<SkinnedMeshRenderer>();
-                Mesh = skinnedMeshRenderer.sharedMesh;
+                Mesh = new Mesh();
+                skinnedMeshRenderer.BakeMesh(Mesh);
                 Renderer = skinnedMeshRenderer;
+                MeshScale = Vector3.one;
+                DestroyMesh = true;
             }
             else
+            {
+                MeshScale = GameObject.transform.lossyScale;
                 Renderer = renderer ?? GameObject.GetComponentInChildrenPure<MeshRenderer>();
+            }
+
             Destroy = destroy;
-            RotationFix = rotationFix.GetValueOrDefault(Quaternion.identity);
         }
 
     }

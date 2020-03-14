@@ -1,7 +1,7 @@
 ﻿/*
 ScamScatter
 http://www.github.com/danbystrom/scamscatter
-Copyright (c) 2019 Dan Byström
+Copyright (c) 2019-2020 Dan Byström
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ namespace ScamScatter
                 var newThicknessMax = cmd.NewThicknessMax.GetValueOrDefault(NewThicknessMax);
                 Debug.Log(targetArea);
 
-                var meshData = new meshData(cmd.Mesh, gameObject.transform.lossyScale);
+                var meshData = new meshData(cmd.Mesh, cmd.MeshScale);
                 stats.SourceTriangles += meshData.TotalTriangleCount;
                 for (var submeshIndex = 0; submeshIndex < cmd.Mesh.subMeshCount; submeshIndex++)
                 {
@@ -186,13 +186,13 @@ namespace ScamScatter
                             normals = newVerticies.Select(_ => _.Normal).ToArray(),
                             uv = newVerticies.Select(_ => _.Uv).ToArray(),
                             tangents = newVerticies.Select(_ => _.Tangent).ToArray(),
-                            triangles = newTriangles.SelectMany(_ => new[] {_.I0, _.I1, _.I2}).ToArray()
+                            triangles = newTriangles.SelectMany(_ => new[] { _.I0, _.I1, _.I2 }).ToArray()
                         };
 
                         var newFragment = new GameObject($"{FragmentNamePrefix}{++objectCount}");
                         newFragment.transform.parent = cmd.NewTransformParent;
                         newFragment.transform.position = cmd.Renderer.transform.position;
-                        newFragment.transform.rotation = cmd.Renderer.transform.rotation * cmd.RotationFix;
+                        newFragment.transform.rotation = cmd.Renderer.transform.rotation;
 #if UNITY_EDITOR
                         newFragment.AddComponent<MeshRenderer>().sharedMaterial = cmd.Renderer.sharedMaterials[submeshIndex % cmd.Renderer.sharedMaterials.Length];
 #else
@@ -213,6 +213,8 @@ namespace ScamScatter
                     }
                 }
 
+                if (cmd.DestroyMesh)
+                    Object.Destroy(cmd.Mesh);
                 if (cmd.Destroy)
                     Object.Destroy(gameObject);
             }
