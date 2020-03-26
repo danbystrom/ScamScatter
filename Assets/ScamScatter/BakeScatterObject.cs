@@ -28,7 +28,8 @@ namespace ScamScatter
         {
             if (objectToBakeSplit == null)
             {
-                EditorUtility.DisplayDialog("Scam Scatter", "You must first select an objec tto scatter!", "OK");
+                EditorUtility.DisplayDialog("Scam Scatter", "You must first select an object to scatter!", "OK");
+                return;
             }
             var newObject = new GameObject {name = "BakedScamScatter_" + objectToBakeSplit.name};
             newObject.transform.position = objectToBakeSplit.transform.position;
