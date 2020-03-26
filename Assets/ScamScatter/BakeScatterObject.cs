@@ -1,10 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
-using UnityEngine.Serialization;
-using Debug = UnityEngine.Debug;
-using Random = UnityEngine.Random;
 
 #if (UNITY_EDITOR)
 
@@ -28,7 +23,7 @@ namespace ScamScatter
         {
             if (objectToBakeSplit == null)
             {
-                EditorUtility.DisplayDialog("Scam Scatter", "You must first select an object to scatter!", "OK");
+                EditorUtility.DisplayDialog("ScamScatter", "You must first select an object to scatter!", "OK");
                 return;
             }
             var newObject = new GameObject {name = "BakedScamScatter_" + objectToBakeSplit.name};

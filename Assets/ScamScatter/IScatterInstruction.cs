@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ScamScatter
+﻿namespace ScamScatter
 {
     public interface IScatterInstruction
     {
