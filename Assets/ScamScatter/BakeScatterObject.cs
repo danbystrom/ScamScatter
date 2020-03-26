@@ -26,7 +26,14 @@ namespace ScamScatter
 
         public void OnWizardCreate()
         {
+            if (objectToBakeSplit == null)
+            {
+                EditorUtility.DisplayDialog("Scam Scatter", "You must first select an objec tto scatter!", "OK");
+            }
             var newObject = new GameObject {name = "BakedScamScatter_" + objectToBakeSplit.name};
+            newObject.transform.position = objectToBakeSplit.transform.position;
+            newObject.transform.rotation = objectToBakeSplit.transform.rotation;
+            newObject.transform.localScale = objectToBakeSplit.transform.localScale;
             ScamScatter.Scatter.Run(
                 new ScatterCommands
                 {
