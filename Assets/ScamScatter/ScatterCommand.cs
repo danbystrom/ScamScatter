@@ -17,6 +17,7 @@ namespace ScamScatter
         public float? NewThicknessMax;
 
         public bool DestroyMesh = false;
+        public bool DontCheckForBaking;
 
         public ScatterCommand(
             GameObject gameObject,
@@ -27,7 +28,12 @@ namespace ScamScatter
         {
             GameObject = gameObject;
             NewTransformParent = newTransformParent;
-            Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?.mesh;
+            Mesh = mesh ?? GameObject.GetComponentInChildrenPure<MeshFilter>()?
+#if UNITY_EDITOR
+                .sharedMesh;
+#else
+                .mesh;
+#endif
             if (Mesh == null)
             {
                 var skinnedMeshRenderer = GameObject.GetComponentInChildrenPure<SkinnedMeshRenderer>();

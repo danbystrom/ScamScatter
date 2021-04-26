@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 public class Demo : MonoBehaviour
 {
-    private const float ScrollSpeed = 200;
+    private const float ScrollSpeed = 300;
 
     private string _info = "http://www.github.com/danbystrom/scamscatter";
 
@@ -56,15 +56,16 @@ public class Demo : MonoBehaviour
             return;
         var sw = Stopwatch.StartNew();
 
-        new ScamScatter.Scatter { TargetArea = 0.8f, MaxTimeMs = 20 }
-        .Run(this, _ =>
-        {
-            _info = _.NewGameObjects > 0
-                ? $"Scattered {hit.transform.name} ({_.SourceTriangles} triangles) into {_.NewGameObjects} new game objects in {sw.ElapsedMilliseconds} ms."
-                : "Nothing to scatter.";
-            StartCoroutine(delayedExplosion(hit.point));
-        },
-        hit.transform.gameObject);
+        new ScamScatter.Scatter2 {TargetArea = 0.8f, MaxTimeMs = 20}.Run(
+            this,
+            _ =>
+            {
+                _info = _.NewGameObjects > 0
+                    ? $"Scattered {hit.transform.name} ({_.SourceTriangles} triangles) into {_.NewGameObjects} new game objects in {sw.ElapsedMilliseconds} ms."
+                    : "Nothing to scatter.";
+                StartCoroutine(delayedExplosion(hit.point));
+            },
+            hit.transform.gameObject);
     }
 
     private IEnumerator delayedExplosion(Vector3 position)

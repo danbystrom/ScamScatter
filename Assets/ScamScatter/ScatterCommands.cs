@@ -37,9 +37,15 @@ namespace ScamScatter
                     skinned));
         }
 
+        public static implicit operator ScatterCommands(ScatterCommand cmd)
+        {
+            return new ScatterCommands() {cmd};
+        }
+
         public static implicit operator ScatterCommands(GameObject gameObject)
         {
-            return new ScatterCommands {gameObject};
+            var result = new ScatterCommands {gameObject};
+            return result;
         }
 
     }
